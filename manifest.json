@@ -1,0 +1,9 @@
+{
+  "name": "Daily Posture",
+  "short_name": "Posture",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FF2E7E",
+  "theme_color": "#FF3D6E",
+  "icons": [{ "src": "icon.png", "sizes": "512x512", "type": "image/png" }]
+}

@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Posture">
+<meta name="theme-color" content="#FF3D6E">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<title>Daily Posture</title>
+<style>
+  :root {
+    --ink: #1D1B4B;
+    --sun: #FFD23F;
+    --release: #7B5CFF;
+    --stretch: #00B894;
+    --strength: #FF5A36;
+    --rest: #1D1B4B;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: ui-rounded, system-ui, -apple-system, sans-serif;
+    color: #fff;
+    background: linear-gradient(160deg, #FF5A36, #FF2E7E 55%, #7B5CFF) fixed;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+  .screen {
+    min-height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+    display: flex; flex-direction: column; gap: 16px;
+    max-width: 520px; margin: 0 auto;
+  }
+  [hidden] { display: none !important; }
+
+  /* home */
+  h1 { font-size: 34px; font-weight: 900; letter-spacing: -.5px; }
+  .hero { display: flex; align-items: center; gap: 8px; }
+  .streak b { display: block; font-size: 64px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .streak span { font-weight: 700; opacity: .9; }
+  .card { background: rgba(255,255,255,.16); border-radius: 22px; padding: 16px; }
+  .cal-head { display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 10px; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 14px; font-weight: 700; }
+  .cal .dow { opacity: .7; font-size: 12px; }
+  .cal .d { aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; }
+  .cal .done { background: var(--sun); color: var(--ink); }
+  .cal .today { box-shadow: inset 0 0 0 3px #fff; }
+  .go {
+    background: var(--sun); color: var(--ink);
+    font-size: 26px; font-weight: 900; padding: 22px; border-radius: 999px;
+    box-shadow: 0 8px 0 #E0A800; transition: transform .1s;
+  }
+  .go:active { transform: translateY(6px); box-shadow: 0 2px 0 #E0A800; }
+  .list { list-style: none; padding: 0; display: grid; gap: 8px; }
+  .list li { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; }
+  .list li small { opacity: .8; font-weight: 600; white-space: nowrap; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+
+  /* session */
+  #run { transition: background-color .4s; background: var(--rest); max-width: none; }
+  #run > * { width: 100%; max-width: 520px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
+  .icon-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.18); font-size: 22px; font-weight: 900; }
+  .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.25); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: #fff; border-radius: 4px; }
+  .chip { align-self: flex-start; font-size: 13px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; background: rgba(0,0,0,.2); padding: 6px 12px; border-radius: 999px; width: auto !important; margin: 0 !important; }
+  #run h2 { font-size: 30px; font-weight: 900; line-height: 1.1; }
+  .label { font-weight: 800; font-size: 18px; opacity: .9; min-height: 1.2em; }
+  #fig { width: 100%; height: 30dvh; }
+  .timer { text-align: center; }
+  .timer b { display: block; font-size: 96px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .timer span { font-weight: 800; font-size: 18px; opacity: .9; }
+  .cue { font-size: 18px; font-weight: 600; line-height: 1.35; opacity: .95; }
+  .controls { display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: auto !important; }
+  .controls button { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 26px; }
+  .controls .play { width: 96px; height: 96px; background: #fff; color: var(--ink); font-size: 36px; }
+
+  /* svg */
+  .fig polyline { fill: none; stroke: #fff; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+  .fig circle { fill: #fff; }
+  .fig .eye { fill: var(--ink); }
+  .prop { stroke: rgba(255,255,255,.45); stroke-width: 5; stroke-linecap: round; fill: none; }
+  .prop.fill { fill: rgba(255,255,255,.2); stroke: none; }
+  .ball { fill: var(--sun); }
+  .band { stroke: var(--sun); stroke-width: 4; stroke-linecap: round; }
+</style>
+</head>
+<body>
+
+<section id="home" class="screen">
+  <h1>Daily Posture</h1>
+  <div class="hero">
+    <div class="streak"><b id="streak">0</b><span>day streak</span></div>
+  </div>
+  <div class="card">
+    <div class="cal-head"><span id="month"></span><span id="total"></span></div>
+    <div class="cal" id="cal"></div>
+  </div>
+  <button class="go" id="start">Start · <span id="mins"></span> min</button>
+  <div class="card"><ul class="list" id="list"></ul></div>
+</section>
+
+<section id="run" class="screen" hidden>
+  <div class="top">
+    <button class="icon-btn" id="exit" aria-label="End session">✕</button>
+    <span id="count"></span>
+    <span style="width:48px"></span>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <span class="chip" id="chip"></span>
+  <h2 id="name"></h2>
+  <div class="label" id="label"></div>
+  <svg id="fig" viewBox="0 0 200 200"></svg>
+  <div class="timer"><b id="big"></b><span id="sub"></span></div>
+  <p class="cue" id="cue"></p>
+  <div class="controls" id="controls">
+    <button id="prev" aria-label="Back">⏮</button>
+    <button id="pause" class="play" aria-label="Pause">❚❚</button>
+    <button id="next" aria-label="Skip">⏭</button>
+  </div>
+  <button class="go" id="home-btn" hidden>Back home</button>
+</section>
+
+<script>
+// ---------- figures ----------
+// Poses are joint coordinates in a 200x200 box. Each exercise animates between pose a and b.
+const FRONT = { h:[100,40], n:[100,56], sL:[84,60], sR:[116,60], eL:[80,88], eR:[120,88], wL:[78,114], wR:[122,114],
+                p:[100,115], kL:[92,150], kR:[108,150], fL:[90,185], fR:[110,185] };
+const SIDE  = { h:[102,40], n:[100,56], sL:[100,60], sR:[100,60], eL:[98,88], eR:[102,88], wL:[99,114], wR:[104,114],
+                p:[100,115], kL:[98,150], kR:[103,150], fL:[97,185], fR:[104,185] };
+const both = (k, v) => ({ [k+'L']: v, [k+'R']: v });
+const FLOOR = '<line class="prop" x1="10" y1="189" x2="190" y2="189"/>';
+const wall = x => `<line class="prop" x1="${x}" y1="10" x2="${x}" y2="189"/>` + FLOOR;
+const CHEER = { ...FRONT, eL:[76,32], wL:[70,8], eR:[124,32], wR:[130,8] };
+
+const EX = [
+  { name: 'Pec minor ball release', kind: 'release', hold: 60, sides: true,
+    cue: 'Face a wall with the ball just under your collarbone, near the shoulder. Lean in and slowly raise and lower that arm.',
+    fig: { face: -1, props: () => wall(80) + '<circle class="ball" cx="90" cy="72" r="6"/>',
+      a: { ...SIDE, h:[98,40], n:[98,56], ...both('s',[98,60]), p:[102,115] },
+      b: { ...SIDE, h:[98,40], n:[98,56], ...both('s',[98,60]), p:[102,115], eL:[96,36], wL:[98,10] } } },
+  { name: 'Foam roller extension', kind: 'release', hold: 90,
+    cue: 'Roller under your upper back, hands behind your head, hips down. Extend back over it, then curl up. Shift it an inch every few reps.',
+    fig: { face: -1, props: () => FLOOR + '<circle class="prop fill" cx="92" cy="178" r="10"/>',
+      a: { h:[76,148], n:[88,158], ...both('s',[90,159]), ...both('e',[92,136]), ...both('w',[80,140]),
+           p:[132,181], ...both('k',[156,152]), ...both('f',[176,186]) },
+      b: { h:[70,172], n:[86,166], ...both('s',[88,167]), ...both('e',[82,146]), ...both('w',[72,160]),
+           p:[132,181], ...both('k',[156,152]), ...both('f',[176,186]) } } },
+  { name: 'Doorway pec stretch', kind: 'stretch', hold: 45, sets: 2,
+    cue: 'Forearm on the door frame, elbow at shoulder height. Step through until your chest opens. Breathe, don’t shrug.',
+    fig: { face: 1, props: () => wall(86),
+      a: { ...SIDE, h:[103,40], eL:[87,62], wL:[87,36], kR:[108,150], fR:[114,185] },
+      b: { h:[117,44], n:[113,58], ...both('s',[113,62]), eL:[87,62], wL:[87,36], eR:[116,90], wR:[118,116],
+           p:[108,116], kL:[102,150], fL:[96,185], kR:[124,148], fR:[128,185] } } },
+  { name: 'Upper trap stretch', kind: 'stretch', hold: 45, sides: true,
+    cue: 'Ear toward shoulder, hand over your head gently adds weight. Keep the other shoulder pulled down.',
+    fig: { face: 0, props: () => FLOOR,
+      a: { ...FRONT, eR:[128,34], wR:[94,28], wL:[74,118] },
+      b: { ...FRONT, h:[112,45], n:[101,56], eR:[134,40], wR:[104,32], wL:[72,120] } } },
+  { name: 'Chin tucks', kind: 'strength', reps: 10, tempo: 6, sets: 2,
+    cue: 'Glide your head straight back into a double chin and hold ~5 seconds. Eyes level, don’t nod down.',
+    fig: { face: 1, props: () => FLOOR,
+      a: { ...SIDE, h:[112,43], n:[103,57] },
+      b: { ...SIDE, h:[100,40] } } },
+  { name: 'Wall angels', kind: 'strength', reps: 10, tempo: 4, sets: 2,
+    cue: 'Head, upper back and butt against the wall. Slide arms up and down slowly, keeping wrists and elbows on the wall.',
+    fig: { face: 0, props: () => FLOOR + '<rect class="prop fill" x="40" y="4" width="120" height="183" rx="8"/>',
+      a: { ...FRONT, eL:[62,60], wL:[62,32], eR:[138,60], wR:[138,32] },
+      b: { ...FRONT, eL:[76,30], wL:[88,6], eR:[124,30], wR:[112,6] } } },
+  { name: 'Band pull-aparts', kind: 'strength', reps: 15, tempo: 3, sets: 2,
+    cue: 'Arms straight at shoulder height. Pull the band to your chest by squeezing your shoulder blades together.',
+    fig: { face: 0, props: () => FLOOR, over: P => `<line class="band" x1="${P.wL[0]}" y1="${P.wL[1]}" x2="${P.wR[0]}" y2="${P.wR[1]}"/>`,
+      a: { ...FRONT, eL:[90,70], wL:[95,66], eR:[110,70], wR:[105,66] },
+      b: { ...FRONT, eL:[58,62], wL:[32,62], eR:[142,62], wR:[168,62] } } },
+  { name: 'Band face pulls', kind: 'strength', reps: 12, tempo: 3, sets: 2,
+    cue: 'Band anchored at face height. Pull toward your eyes with elbows high, then rotate your hands back.',
+    fig: { face: 1, props: () => FLOOR, over: P => `<line class="band" x1="186" y1="58" x2="${P.wR[0]}" y2="${P.wR[1]}"/><circle class="ball" cx="186" cy="58" r="5"/>`,
+      a: { ...SIDE, ...both('e',[125,64]), ...both('w',[150,62]) },
+      b: { ...SIDE, ...both('e',[86,56]), ...both('w',[108,40]) } } },
+  { name: 'Prone Y–T raises', kind: 'strength', reps: 10, tempo: 4, sets: 2,
+    cue: 'Face down, thumbs up, forehead resting. Lift your arms in a Y, then a T on the next rep. Squeeze low between the shoulder blades.',
+    fig: { face: -1, props: () => FLOOR,
+      a: { h:[48,176], n:[64,180], ...both('s',[66,180]), ...both('e',[46,182]), ...both('w',[26,183]),
+           p:[122,181], ...both('k',[152,183]), ...both('f',[182,183]) },
+      b: { h:[48,176], n:[64,180], ...both('s',[66,180]), ...both('e',[46,166]), ...both('w',[28,154]),
+           p:[122,181], ...both('k',[152,183]), ...both('f',[182,183]) } } },
+  { name: 'Wall chin tuck hold', kind: 'strength', hold: 60,
+    cue: 'Heels, butt and shoulders on the wall. Tuck your chin and gently press the back of your head into the wall.',
+    fig: { face: 1, props: () => wall(91),
+      a: { ...SIDE, h:[112,43], n:[102,57] },
+      b: { ...SIDE, h:[103,40] } } },
+];
+const KIND = { release: 'var(--release)', stretch: 'var(--stretch)', strength: 'var(--strength)', rest: 'var(--rest)' };
+
+function draw(svg, fig, phase) {
+  const k = (1 - Math.cos(2 * Math.PI * phase)) / 2; // a -> b -> a
+  const P = {};
+  for (const j in fig.a) P[j] = fig.a[j].map((v, i) => +(v + (fig.b[j][i] - v) * k).toFixed(1));
+  const L = (...js) => `<polyline points="${js.map(j => P[j]).join(' ')}"/>`;
+  const [hx, hy] = P.h;
+  svg.innerHTML = (fig.props ? fig.props(P) : '') + '<g class="fig">' +
+    L('sL','n','sR') + L('n','p') + L('sL','eL','wL') + L('sR','eR','wR') + L('fL','kL','p','kR','fR') +
+    `<circle cx="${hx}" cy="${hy}" r="11"/>` +
+    (fig.face ? `<circle class="eye" cx="${hx + fig.face * 5}" cy="${hy - 2}" r="2"/>` : '') + '</g>' + (fig.over ? fig.over(P) : '');
+}
+
+// ---------- routine ----------
+const REST_BETWEEN = 15, REST_SETS = 10, SWITCH = 5;
+function build() {
+  const steps = [];
+  EX.forEach((e, i) => {
+    steps.push({ rest: true, ex: e, secs: i ? REST_BETWEEN : 5, label: i ? 'Up next' : 'Get ready' });
+    const sets = e.sets || 1, sides = e.sides ? ['Left', 'Right'] : [null];
+    let first = true;
+    for (let set = 1; set <= sets; set++) for (const side of sides) {
+      if (!first) steps.push({ rest: true, ex: e, secs: side === 'Right' ? SWITCH : REST_SETS,
+                               label: side === 'Right' ? 'Switch sides' : 'Rest' });
+      first = false;
+      steps.push({ ex: e, secs: e.reps ? e.reps * e.tempo : e.hold,
+                   label: [sets > 1 && `Set ${set} of ${sets}`, side].filter(Boolean).join(' · ') });
+    }
+  });
+  return steps;
+}
+const STEPS = build();
+const fmt = s => s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : String(s);
+
+// ---------- history ----------
+const $ = id => document.getElementById(id);
+const key = d => d.toLocaleDateString('en-CA'); // YYYY-MM-DD, local time
+let done;
+try { done = new Set(JSON.parse(localStorage.getItem('done') || '[]')); } catch { done = new Set(); }
+function save() { try { localStorage.setItem('done', JSON.stringify([...done])); } catch {} }
+function streak() {
+  const d = new Date(); let n = 0;
+  if (!done.has(key(d))) d.setDate(d.getDate() - 1);
+  while (done.has(key(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function renderHome() {
+  $('streak').textContent = streak();
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  $('month').textContent = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  $('total').textContent = `${done.size} total`;
+  let html = 'SMTWTFS'.split('').map(c => `<div class="dow">${c}</div>`).join('');
+  html += '<div></div>'.repeat(new Date(y, m, 1).getDay());
+  for (let d = 1, n = new Date(y, m + 1, 0).getDate(); d <= n; d++) {
+    const k = key(new Date(y, m, d));
+    html += `<div class="d${done.has(k) ? ' done' : ''}${k === key(now) ? ' today' : ''}">${d}</div>`;
+  }
+  $('cal').innerHTML = html;
+  $('mins').textContent = Math.round(STEPS.reduce((a, s) => a + s.secs, 0) / 60);
+  $('list').innerHTML = EX.map(e => `<li><span><i class="dot" style="background:${KIND[e.kind]}"></i>${e.name}</span><small>${
+    e.reps ? `${e.sets || 1}×${e.reps}` : `${e.sets > 1 ? e.sets + '×' : ''}${e.hold}s${e.sides ? '/side' : ''}`}</small></li>`).join('');
+}
+
+// ---------- sound & wake lock ----------
+let ac, lock;
+function beep(f = 880, dur = .12, at = 0) {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + at;
+  o.frequency.value = f;
+  g.gain.setValueAtTime(.4, t0);
+  g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
+  o.connect(g).connect(ac.destination);
+  o.start(t0); o.stop(t0 + dur);
+}
+async function wake() { try { lock = await navigator.wakeLock?.request('screen'); } catch {} }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && mode === 'run') { wake(); ac?.resume(); }
+});
+
+// ---------- session ----------
+let mode = 'home', i = 0, t = 0, anim = 0, paused = false, lastLeft, rep, last = performance.now();
+
+function go(n) {
+  i = Math.max(0, n); t = 0; lastLeft = null; rep = 0;
+  if (i >= STEPS.length) return finish();
+  const s = STEPS[i];
+  $('run').style.backgroundColor = KIND[s.rest ? 'rest' : s.ex.kind];
+  $('chip').textContent = s.rest ? s.label : s.ex.kind;
+  $('name').textContent = s.ex.name;
+  $('label').textContent = s.rest ? '' : s.label;
+  $('cue').textContent = s.ex.cue;
+  $('count').textContent = `${EX.indexOf(s.ex) + 1} / ${EX.length}`;
+  $('bar').style.width = `${100 * i / STEPS.length}%`;
+  s.rest ? beep(440, .2) : beep(988, .3);
+}
+
+function finish() {
+  mode = 'done';
+  done.add(key(new Date())); save();
+  lock?.release(); lock = null;
+  [523, 659, 784, 1047].forEach((f, n) => beep(f, .25, n * .15));
+  $('run').style.backgroundColor = KIND.stretch;
+  $('chip').textContent = 'Complete';
+  $('name').textContent = 'Nice work!';
+  $('label').textContent = '';
+  $('big').textContent = streak();
+  $('sub').textContent = 'day streak';
+  $('cue').textContent = 'Stand tall today. Shoulders back and down, chin gently tucked.';
+  $('count').textContent = '';
+  $('bar').style.width = '100%';
+  $('controls').hidden = true;
+  $('home-btn').hidden = false;
+}
+
+function goHome() {
+  mode = 'home';
+  lock?.release(); lock = null;
+  $('run').hidden = true; $('home').hidden = false;
+  renderHome();
+}
+
+$('start').onclick = () => {
+  // Audio must be unlocked inside a tap on iOS.
+  ac ||= new (window.AudioContext || window.webkitAudioContext)();
+  ac.resume();
+  wake();
+  mode = 'run'; paused = false;
+  $('pause').textContent = '❚❚';
+  $('controls').hidden = false; $('home-btn').hidden = true;
+  $('home').hidden = true; $('run').hidden = false;
+  go(0);
+};
+$('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? '▶' : '❚❚'; };
+$('next').onclick = () => go(i + 1);
+$('prev').onclick = () => go(t > 2 ? i : i - 1);
+$('exit').onclick = () => { if (mode === 'done' || confirm('End this session?')) goHome(); };
+$('home-btn').onclick = goHome;
+
+function frame(now) {
+  // Cap dt so time spent backgrounded doesn't fast-forward the routine.
+  const dt = Math.min((now - last) / 1000, .25); last = now;
+  if (mode === 'done') {
+    anim += dt;
+    draw($('fig'), { a: FRONT, b: CHEER, props: () => FLOOR }, anim / 1.5);
+  } else if (mode === 'run') {
+    const s = STEPS[i];
+    if (!paused) { t += dt; anim += dt; }
+    const left = Math.max(0, Math.ceil(s.secs - t));
+    if (s.ex.reps && !s.rest) {
+      const r = Math.min(Math.floor(t / s.ex.tempo) + 1, s.ex.reps);
+      if (r !== rep) { if (rep) beep(620, .08); rep = r; }
+      $('big').textContent = rep;
+      $('sub').textContent = `of ${s.ex.reps} reps · ${fmt(left)} left`;
+    } else {
+      if (left !== lastLeft && left <= 3 && left > 0) beep(660, .1);
+      $('big').textContent = fmt(left);
+      $('sub').textContent = s.rest ? 'rest' : 'hold';
+    }
+    lastLeft = left;
+    draw($('fig'), s.ex.fig, s.rest ? anim / 4 : t / (s.ex.tempo || 4));
+    if (t >= s.secs) go(i + 1);
+  }
+  requestAnimationFrame(frame);
+}
+
+renderHome();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
