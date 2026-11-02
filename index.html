@@ -405,11 +405,12 @@ function best() {
   return top;
 }
 let calY, calM; // month shown in History
+const DOW = 'MTWTFSS', dow = d => (d.getDay() + 6) % 7; // weeks start on Monday
 function renderCal() {
   const now = new Date(), first = new Date(calY, calM, 1);
   $('month').textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  let html = 'SMTWTFS'.split('').map(c => `<div class="dow">${c}</div>`).join(''), n = 0;
-  html += '<div></div>'.repeat(first.getDay());
+  let html = DOW.split('').map(c => `<div class="dow">${c}</div>`).join(''), n = 0;
+  html += '<div></div>'.repeat(dow(first));
   for (let d = 1, last = new Date(calY, calM + 1, 0).getDate(); d <= last; d++) {
     const day = new Date(calY, calM, d), k = key(day);
     if (done.has(k)) n++;
@@ -441,9 +442,9 @@ function renderHome() {
   $('total').textContent = done.size;
   let week = '';
   for (let n = 0; n < 7; n++) {
-    const d = new Date(now); d.setDate(now.getDate() - now.getDay() + n);
+    const d = new Date(now); d.setDate(now.getDate() - dow(now) + n);
     const k = key(d);
-    week += `<div class="${done.has(k) ? 'done' : ''}${k === key(now) ? ' today' : ''}">${'SMTWTFS'[n]}<i>${done.has(k) ? '✓' : d.getDate()}</i></div>`;
+    week += `<div class="${done.has(k) ? 'done' : ''}${k === key(now) ? ' today' : ''}">${DOW[n]}<i>${done.has(k) ? '✓' : d.getDate()}</i></div>`;
   }
   $('week').innerHTML = week;
   calY = now.getFullYear(); calM = now.getMonth();
