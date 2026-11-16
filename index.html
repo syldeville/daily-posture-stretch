@@ -104,7 +104,8 @@
   .chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
   .chart .grid { stroke: rgba(255,255,255,.08); }
   .chart .axis { fill: var(--muted); font-size: 11px; font-weight: 700; }
-  .chart .ref { stroke: rgba(255,255,255,.4); stroke-dasharray: 4 4; }
+  .chart .zone { fill: rgba(255,210,63,.12); }
+  .chart .zone-label { fill: var(--sun); font-size: 10px; font-weight: 800; opacity: .8; }
   .chart .line { fill: none; stroke: var(--sun); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .chart .pt { fill: var(--sun); stroke: var(--surface); stroke-width: 2; }
   .chart .val { fill: #fff; font-size: 12px; font-weight: 800; }
@@ -112,6 +113,29 @@
   .tip { position: absolute; transform: translate(-50%, calc(-100% - 10px)); pointer-events: none; white-space: nowrap;
          background: var(--surface-2); padding: 6px 10px; border-radius: 10px; font-size: 13px; font-weight: 800; }
   .tip small { color: var(--muted); font-weight: 700; margin-left: 6px; }
+  .guide-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; font-weight: 800; text-align: left; }
+  .guide-btn::after { content: '›'; font-size: 22px; color: var(--muted); }
+  .link { color: var(--sun); font-weight: 800; text-decoration: underline; padding: 4px; }
+  .sheet { position: fixed; inset: 0; z-index: 11; overflow-y: auto; background: var(--bg); }
+  .sheet .screen { padding-bottom: calc(env(safe-area-inset-bottom) + 32px); }
+  .sheet h2 { font-size: 20px; font-weight: 900; margin-bottom: 10px; }
+  .sheet p, .sheet li { font-weight: 600; line-height: 1.45; }
+  .sheet ol, .sheet ul { padding-left: 20px; display: grid; gap: 8px; }
+  .sheet b { color: var(--sun); }
+  .diagram { display: block; width: 100%; height: auto; }
+  .diagram .body { fill: var(--surface-2); }
+  .diagram .ear { fill: none; stroke: rgba(255,255,255,.35); stroke-width: 2; }
+  .diagram .horiz { stroke: #fff; stroke-width: 2; stroke-dasharray: 6 6; opacity: .7; }
+  .diagram .meas { stroke: var(--sun); stroke-width: 3; stroke-linecap: round; }
+  .diagram .arc { fill: none; stroke: #fff; stroke-width: 2; }
+  .diagram .pt { fill: var(--sun); stroke: var(--bg); stroke-width: 2; }
+  .diagram .num { fill: var(--ink); font-size: 12px; font-weight: 900; }
+  .diagram .deg { fill: #fff; font-size: 16px; font-weight: 900; }
+  .scale { display: grid; grid-template-columns: 2fr 2fr 3fr 3fr; gap: 2px; margin-top: 4px; border-radius: 10px; overflow: hidden; }
+  .scale div { background: var(--surface-2); padding: 10px 6px; font-size: 12px; font-weight: 800; text-align: center; line-height: 1.25; }
+  .scale div b { display: block; font-size: 14px; color: #fff; }
+  .scale .target { background: var(--sun); color: var(--ink); }
+  .scale .target b { color: var(--ink); }
   .note { font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--muted); margin-top: 10px; }
   .empty { font-weight: 600; line-height: 1.4; color: var(--muted); }
 
@@ -237,10 +261,11 @@
       <label class="add">+ Add<input type="file" accept="image/*" id="pic-in" hidden></label>
     </span>
   </header>
+  <button class="card guide-btn" id="guide-open">How to measure & what to aim for</button>
   <div class="card" id="cva-card" hidden>
     <div class="card-title"><span>Head angle</span><small id="cva-latest"></small></div>
     <div class="chart" id="cva-chart"></div>
-    <p class="note">Angle from your neck to your ear on side photos. Higher is better; below about 50° counts as forward head.</p>
+    <p class="note">Angle from the base of your neck up to your ear on side photos. Higher is better. The shaded band is the 50–55° target.</p>
   </div>
   <div class="pics" id="pics"></div>
   <p class="empty card" id="pics-empty">Take a side-view photo every week or two, same spot and distance. Photos stay on this phone only.</p>
@@ -264,7 +289,7 @@
     <img id="viewer-img" alt="Progress photo">
     <svg id="mark"></svg>
   </div>
-  <p class="hint" id="hint" hidden></p>
+  <p class="hint" hidden id="hint-row"><span id="hint"></span> <button class="link" id="hint-help">Where?</button></p>
   <div class="viewer-bar">
     <span id="viewer-date"></span>
     <button id="viewer-measure">Measure</button>
@@ -286,6 +311,53 @@
   <div class="viewer-bar">
     <span>Drag to compare</span>
     <button id="compare-close">Close</button>
+  </div>
+</div>
+
+<div class="sheet" id="guide" hidden>
+  <div class="screen">
+    <header class="head">
+      <div><div class="eyebrow">Head angle</div><h1>How to measure</h1></div>
+      <button class="icon-btn" id="guide-close" aria-label="Close">✕</button>
+    </header>
+    <div class="card">
+      <svg class="diagram" viewBox="0 0 300 250" role="img" aria-label="Side view of head and neck. Point 1 is the ear opening, point 2 is the bump at the base of the neck. The angle between the line joining them and the horizontal is about 52 degrees.">
+        <path class="body" d="M84 250 C92 212 104 184 118 168 C128 152 136 140 142 128 L206 134 C204 155 201 170 200 182 C222 192 234 214 238 250 Z"/>
+        <ellipse class="body" cx="182" cy="88" rx="46" ry="52"/>
+        <path class="body" d="M224 80 L238 100 L224 104 Z"/>
+        <ellipse class="ear" cx="166" cy="98" rx="7" ry="11"/>
+        <line class="horiz" x1="118" y1="168" x2="262" y2="168"/>
+        <line class="meas" x1="118" y1="168" x2="172" y2="100"/>
+        <path class="arc" d="M158 168 A40 40 0 0 0 142.9 136.7"/>
+        <text class="deg" x="166" y="160">≈52°</text>
+        <circle class="pt" cx="172" cy="100" r="9"/><text class="num" x="172" y="104" text-anchor="middle">1</text>
+        <circle class="pt" cx="118" cy="168" r="9"/><text class="num" x="118" y="172" text-anchor="middle">2</text>
+      </svg>
+      <ol>
+        <li><b>Ear:</b> tap the small flap just in front of your ear opening.</li>
+        <li><b>Base of neck (C7):</b> tap the bony bump where your neck meets your back, roughly level with the top of your shoulders. To find it, feel the back of your neck while you nod: C7 is the bump that stays put, and the one above it moves.</li>
+      </ol>
+      <p class="note">The app measures the angle between that line and the horizontal. If you tap too low on the back, the angle reads too high.</p>
+    </div>
+    <div class="card">
+      <h2>Taking the photo</h2>
+      <ul>
+        <li>Exactly side-on, about 2 m away, phone level at shoulder height.</li>
+        <li>Stand naturally and look straight ahead. Take a breath and let your shoulders relax first; don’t stand up extra tall.</li>
+        <li>Hair off your ear and neck, and a fitted top so C7 shows.</li>
+        <li>Also try one sitting at your desk after 20 minutes of work. It’s often lower than a standing photo.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>What to aim for</h2>
+      <div class="scale">
+        <div><b>&lt;45°</b>Forward head</div>
+        <div><b>45–50°</b>Mild</div>
+        <div class="target"><b>50–55°</b>Target</div>
+        <div><b>&gt;58°</b>Over-tucked</div>
+      </div>
+      <p class="note">Aim for 50° first, then 53–55°. Above about 58° usually means you’re holding an exaggerated chin tuck, not a better posture. Changes under 3° between photos are within tapping error, so watch the trend over several check-ins.</p>
+    </div>
   </div>
 </div>
 
@@ -580,7 +652,7 @@ function renderChart() {
   let svg = '';
   for (let v = lo; v <= hi; v += 5)
     svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}°</text>`;
-  svg += `<line class="ref" x1="${L}" x2="${W - R}" y1="${y(50)}" y2="${y(50)}"/>`;
+  svg += `<rect class="zone" x="${L}" width="${W - L - R}" y="${y(55)}" height="${y(50) - y(55)}"/><text class="zone-label" x="${W - R - 4}" y="${y(55) + 11}" text-anchor="end">target</text>`;
   svg += `<text class="axis" x="${x(ts[0])}" y="${H - 4}" text-anchor="${span ? 'start' : 'middle'}">${short(pts[0])}</text>`;
   if (span) svg += `<text class="axis" x="${x(ts.at(-1))}" y="${H - 4}" text-anchor="end">${short(pts.at(-1))}</text>`;
   svg += `<line class="cross" id="cross" y1="${T}" y2="${H - B}" visibility="hidden"/>`;
@@ -618,7 +690,7 @@ function measuring(on) {
   taps = on ? [] : null;
   $('stage').classList.toggle('measuring', on);
   $('viewer-measure').textContent = on ? 'Cancel' : 'Measure';
-  $('hint').hidden = !on;
+  $('hint-row').hidden = !on;
   $('hint').textContent = 'Tap the opening of your ear';
   $('viewer-date').innerHTML = `${nice(cur.date)}<small>${cur.cva != null ? `Head angle ${cur.cva}°` : 'Not measured'}</small>`;
   drawMark();
@@ -663,6 +735,8 @@ $('viewer-del').onclick = async () => {
   renderPics();
 };
 $('viewer-close').onclick = () => $('viewer').hidden = true;
+$('guide-open').onclick = $('hint-help').onclick = () => { $('guide').hidden = false; $('guide').scrollTop = 0; };
+$('guide-close').onclick = () => $('guide').hidden = true;
 $('compare-close').onclick = () => $('compare').hidden = true;
 $('cmp-a-sel').onchange = e => $('cmp-a').src = picURLs[e.target.value];
 $('cmp-b-sel').onchange = e => $('cmp-b').src = picURLs[e.target.value];
