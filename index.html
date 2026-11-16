@@ -157,14 +157,18 @@
     position: fixed; inset: 0; z-index: 10; background: #000; display: flex; flex-direction: column;
     padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
   }
-  .stage { position: relative; flex: 1; min-height: 0; }
-  .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-  .stage svg { position: absolute; overflow: visible; pointer-events: none; }
-  .stage.measuring svg { pointer-events: auto; cursor: crosshair; touch-action: none; }
+  .stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; }
+  .stage.measuring { cursor: crosshair; }
+  .zoom { position: absolute; inset: 0; transform-origin: 0 0; }
+  .zoom img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .zoom svg { position: absolute; overflow: visible; pointer-events: none; }
+  #mark * { vector-effect: non-scaling-stroke; }
   #mark line { stroke: var(--sun); stroke-width: 3; stroke-linecap: round; }
   #mark .ref { stroke: #fff; stroke-width: 2; stroke-dasharray: 6 6; opacity: .8; }
   #mark circle { fill: var(--sun); stroke: #000; stroke-width: 2; }
-  #mark text { fill: #fff; font-size: 22px; font-weight: 900; paint-order: stroke; stroke: #000; stroke-width: 4px; }
+  #mark text { fill: #fff; font-weight: 900; paint-order: stroke; stroke: #000; }
+  .zoom-btns { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 8px; }
+  .zoom-btns button { width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,.6); font-size: 22px; font-weight: 900; }
   .hint { text-align: center; font-weight: 800; color: var(--sun); padding-top: 12px; }
   .viewer-bar small { display: block; font-size: 13px; color: var(--muted); }
   .viewer-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 12px; font-weight: 800; }
@@ -286,8 +290,14 @@
 
 <div class="viewer" id="viewer" hidden>
   <div class="stage" id="stage">
-    <img id="viewer-img" alt="Progress photo">
-    <svg id="mark"></svg>
+    <div class="zoom" id="zoom">
+      <img id="viewer-img" alt="Progress photo">
+      <svg id="mark"></svg>
+    </div>
+    <div class="zoom-btns">
+      <button id="zoom-out" aria-label="Zoom out">−</button>
+      <button id="zoom-in" aria-label="Zoom in">+</button>
+    </div>
   </div>
   <p class="hint" hidden id="hint-row"><span id="hint"></span> <button class="link" id="hint-help">Where?</button></p>
   <div class="viewer-bar">
@@ -681,6 +691,7 @@ let cur, taps = null;
 function openViewer(n) {
   cur = all[n];
   $('viewer-img').src = picURLs[n];
+  z = { s: 1, x: 0, y: 0 }; applyZoom();
   measuring(false);
   $('viewer').hidden = false;
   $('viewer-img').decode().then(drawMark, () => {});
@@ -691,7 +702,7 @@ function measuring(on) {
   $('stage').classList.toggle('measuring', on);
   $('viewer-measure').textContent = on ? 'Cancel' : 'Measure';
   $('hint-row').hidden = !on;
-  $('hint').textContent = 'Tap the opening of your ear';
+  $('hint').textContent = 'Tap the opening of your ear. Pinch to zoom.';
   $('viewer-date').innerHTML = `${nice(cur.date)}<small>${cur.cva != null ? `Head angle ${cur.cva}°` : 'Not measured'}</small>`;
   drawMark();
 }
@@ -709,16 +720,62 @@ function drawMark() {
     const [ex, ey] = P(ear), [cx, cy] = P(c7), dir = ex >= cx ? 1 : -1;
     out += `<line class="ref" x1="${cx}" y1="${cy}" x2="${cx + dir * Math.max(80, Math.abs(ex - cx) + 30)}" y2="${cy}"/>`;
     out += `<line x1="${cx}" y1="${cy}" x2="${ex}" y2="${ey}"/>`;
-    if (!taps) out += `<text x="${cx + dir * 24}" y="${cy - 14}" text-anchor="${dir > 0 ? 'start' : 'end'}">${cur.cva}°</text>`;
+    if (!taps) out += `<text x="${cx + dir * 24 / z.s}" y="${cy - 14 / z.s}" text-anchor="${dir > 0 ? 'start' : 'end'}"
+      style="font-size:${22 / z.s}px;stroke-width:${4 / z.s}px">${cur.cva}°</text>`;
   }
-  out += [ear, c7].filter(Boolean).map(q => `<circle cx="${P(q)[0]}" cy="${P(q)[1]}" r="7"/>`).join('');
+  out += [ear, c7].filter(Boolean).map(q => `<circle cx="${P(q)[0]}" cy="${P(q)[1]}" r="${7 / z.s}"/>`).join('');
   svg.innerHTML = out;
 }
-addEventListener('resize', () => { if (!$('viewer').hidden) drawMark(); });
-$('mark').onpointerdown = async e => {
+addEventListener('resize', () => { if (!$('viewer').hidden) applyZoom(); });
+// Pinch, scroll or use the buttons to zoom; drag to pan. A tap that doesn't move marks a point.
+let z = { s: 1, x: 0, y: 0 };
+const pointers = new Map(); let tapStart = null;
+function applyZoom() {
+  const st = $('stage'), W = st.clientWidth, H = st.clientHeight;
+  z.x = Math.min(0, Math.max(W - W * z.s, z.x)); z.y = Math.min(0, Math.max(H - H * z.s, z.y));
+  $('zoom').style.transform = `translate(${z.x}px, ${z.y}px) scale(${z.s})`;
+  drawMark();
+}
+function zoomAt(s, px, py) {
+  s = Math.min(6, Math.max(1, s));
+  z.x = px - (px - z.x) * s / z.s; z.y = py - (py - z.y) * s / z.s; z.s = s;
+  applyZoom();
+}
+const local = e => { const r = $('stage').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const mid = () => { const [a, b] = pointers.values(); return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.hypot(a[0] - b[0], a[1] - b[1])]; };
+$('zoom-in').onclick = () => zoomAt(z.s * 1.5, $('stage').clientWidth / 2, $('stage').clientHeight / 2);
+$('zoom-out').onclick = () => zoomAt(z.s / 1.5, $('stage').clientWidth / 2, $('stage').clientHeight / 2);
+$('stage').addEventListener('wheel', e => { e.preventDefault(); zoomAt(z.s * Math.exp(-e.deltaY / 300), ...local(e)); }, { passive: false });
+$('stage').onpointerdown = e => {
+  if (e.target.closest('button')) return;
+  try { $('stage').setPointerCapture(e.pointerId); } catch {}
+  pointers.set(e.pointerId, local(e));
+  tapStart = pointers.size === 1 ? local(e) : null;
+};
+$('stage').onpointermove = e => {
+  if (!pointers.has(e.pointerId)) return;
+  const before = pointers.size === 2 && mid(), [px, py] = pointers.get(e.pointerId);
+  pointers.set(e.pointerId, local(e));
+  if (before) {
+    const [mx, my, d] = mid();
+    z.x += mx - before[0]; z.y += my - before[1];
+    zoomAt(z.s * d / before[2], mx, my);
+  } else {
+    const [x, y] = local(e);
+    if (tapStart && Math.hypot(x - tapStart[0], y - tapStart[1]) > 8) tapStart = null;
+    if (!tapStart && z.s > 1) { z.x += x - px; z.y += y - py; applyZoom(); }
+  }
+};
+$('stage').onpointerup = $('stage').onpointercancel = e => {
+  if (!pointers.delete(e.pointerId)) return;
+  if (tapStart && e.type === 'pointerup' && !pointers.size) mark(e);
+  tapStart = null;
+};
+async function mark(e) {
   if (!taps) return;
-  const r = $('mark').getBoundingClientRect();
-  taps.push([(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]);
+  const r = $('mark').getBoundingClientRect(), u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
+  if (u < 0 || u > 1 || v < 0 || v > 1) return; // outside the photo
+  taps.push([u, v]);
   if (taps.length === 1) { $('hint').textContent = 'Now tap the bump at the base of your neck'; drawMark(); return; }
   const img = $('viewer-img'), [ear, c7] = taps;
   const dx = (ear[0] - c7[0]) * img.naturalWidth, dy = (c7[1] - ear[1]) * img.naturalHeight;
