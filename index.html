@@ -190,7 +190,7 @@
   .cmp-pick select { font: inherit; font-size: 16px; font-weight: 700; text-transform: none; letter-spacing: 0; color: #fff; background: rgba(255,255,255,.18); border: 0; border-radius: 12px; padding: 10px; }
 
   /* session */
-  #run { transition: background-color .4s; background: var(--rest); max-width: none; }
+  #run { transition: background-color .4s; background: var(--rest); max-width: none; height: 100dvh; overflow-y: auto; }
   #run > * { width: 100%; max-width: 520px; margin: 0 auto; }
   .top { display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
   .icon-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.18); font-size: 22px; font-weight: 900; }
@@ -199,11 +199,20 @@
   .chip { align-self: flex-start; font-size: 13px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; background: rgba(0,0,0,.2); padding: 6px 12px; border-radius: 999px; width: auto !important; margin: 0 !important; }
   #run h2 { font-size: 30px; font-weight: 900; line-height: 1.1; }
   .label { font-weight: 800; font-size: 18px; opacity: .9; min-height: 1.2em; }
-  #fig { width: 100%; height: 30dvh; }
+  /* The figure gives up space first so the controls stay on screen with long cues. */
+  #fig { width: 100%; flex: 1 1 30dvh; min-height: 90px; max-height: 30dvh; }
   .timer { text-align: center; }
   .timer b { display: block; font-size: 96px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
   .timer span { font-weight: 800; font-size: 18px; opacity: .9; }
-  .cue { font-size: 18px; font-weight: 600; line-height: 1.35; opacity: .95; }
+  .cue { font-size: 17px; font-weight: 600; line-height: 1.35; opacity: .95; }
+  @media (max-height: 760px) {
+    #run { gap: 10px; }
+    #run h2 { font-size: 24px; }
+    .timer b { font-size: 72px; }
+    .cue { font-size: 15px; }
+    .controls button { width: 60px; height: 60px; }
+    .controls .play { width: 80px; height: 80px; }
+  }
   .controls { display: flex; justify-content: center; align-items: center; gap: 24px; margin-top: auto !important; }
   .controls button { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 26px; }
   .controls .play { width: 96px; height: 96px; background: #fff; color: var(--ink); font-size: 36px; }
@@ -435,7 +444,7 @@ const EX = [
       a: { ...FRONT, eR:[128,34], wR:[94,28], wL:[74,118] },
       b: { ...FRONT, h:[112,45], n:[101,56], eR:[134,40], wR:[104,32], wL:[72,120] } } },
   { name: 'Wall angels', kind: 'strength', reps: 10, tempo: 4, sets: 2, prog: [{}, { reps: 12 }, { reps: 15 }],
-    cue: 'Head, upper back and butt against the wall. Slide arms up and down slowly, keeping wrists and elbows on the wall.',
+    cue: 'Stand with feet a step from the wall, knees soft. Butt, upper back and head against it, ribs down so your lower back doesn’t arch. Arms in a goalpost: elbows at shoulder height, backs of wrists on the wall. Slide up only as far as you can without anything leaving the wall, then pull your elbows down toward your ribs. Keep your shoulders away from your ears.',
     fig: { face: 0, props: () => FLOOR + '<rect class="prop fill" x="40" y="4" width="120" height="183" rx="8"/>',
       a: { ...FRONT, eL:[62,60], wL:[62,32], eR:[138,60], wR:[138,32] },
       b: { ...FRONT, eL:[76,30], wL:[88,6], eR:[124,30], wR:[112,6] } } },
@@ -446,7 +455,7 @@ const EX = [
       b: { ...FRONT, eL:[60,74], wL:[34,78], eR:[140,74], wR:[166,78] } } },
   { name: 'Prone Y–T raises', kind: 'strength', reps: 10, tempo: 4, sets: 2,
     prog: [{}, { reps: 12 }, { reps: 10, note: 'light weights' }, { reps: 12, note: 'light weights' }],
-    cue: 'Face down, thumbs up, forehead resting. Lift your arms in a Y, then a T on the next rep. Squeeze low between the shoulder blades.',
+    cue: 'Lie face down, forehead on a folded towel, legs relaxed. Y rep: arms overhead and wide, thumbs pointing up. T rep: arms straight out to the sides, thumbs up. First draw your shoulder blades down and back, then lift your arms a few centimetres and pause for a second. Keep your neck long and don’t shrug; height doesn’t matter.',
     fig: { face: -1, props: () => FLOOR,
       a: { h:[48,176], n:[64,180], ...both('s',[66,180]), ...both('e',[46,182]), ...both('w',[26,183]),
            p:[122,181], ...both('k',[152,183]), ...both('f',[182,183]) },
